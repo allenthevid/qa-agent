@@ -14,6 +14,11 @@ module.exports = {
 
   aiProvider,
 
+  // Path to the WordPress theme to scan for blocks
+  // Discovery reads blocks/*/acf-field-group.json + template.twig to auto-generate
+  // ACF expectations. Set to null to disable auto-discovery.
+  themePath: process.env.THEME_PATH || null,
+
   // Timeout per page navigation (ms)
   pageTimeout: 30000,
 
@@ -32,14 +37,11 @@ module.exports = {
   // The hero-section block does NOT use class="hero-section" — it uses
   // Tailwind utilities: section class="relative overflow-hidden bg-[#043873]"
   acfExpectations: [
-    // hero-section block (on homepage)
-    // Default values render even without custom content:
-    //   heading = "Get More Done with whitepace"
-    //   description = "Project management software..."
-    //   button_label = "Try Whitepace free"
+    // Override auto-discovered checks for hero-section with better selectors
     {
       pagePath: "/",
-      label: "Hero Section",
+      label: "Hero Section (manual override)",
+      blockDir: "hero-section",   // merges into discovered block
       checks: [
         {
           field: "heading",

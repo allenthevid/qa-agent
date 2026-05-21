@@ -4,6 +4,7 @@ const { checkAcf } = require("./checks/acf-check");
 const { checkConsole } = require("./checks/console-check");
 const { buildReport, saveReport, printSummary } = require("./reporter");
 const { generateAiSummary } = require("./ai-summary");
+const { discoverBlocks } = require("./discovery");
 const config = require("../config");
 
 async function main() {
@@ -13,6 +14,23 @@ async function main() {
   console.log(`Site: ${config.siteUrl}`);
   console.log(`AI summary: ${skipAi ? "skipped" : config.aiProvider || "unavailable (no API key)"}`);
   console.log("");
+
+  // 0. Discover blocks if themePath is set
+  const discoveredExpectations = [];
+  if (config.themePath) {
+    console.log("[0/4] Discovering blocks from theme...");
+    const discovered = discoverBlocks(config.themePath);
+    discoveredExpectations.push(...discovered);
+    if (discovered.length) {
+      console.log(`  Found ${discovered.length} block(s) with ACF fields`);
+    }
+  }
+
+  // Merge discovered expectations with manual overrides from config.
+  // Manual entries take precedence for the same block label + field.
+  const manualExpectations = config.acfExpectations || [];
+  const mergedExpectations = mergeExpectations(discoveredExpectations, manualExpectations);
+  config.acfExpectations = mergedExpectations;
 
   // 1. Launch browser
   console.log("[1/4] Launching headless browser...");
@@ -62,6 +80,59 @@ async function main() {
 
   // Exit with non-zero if failures
   process.exitCode = report.summary.failed > 0 ? 1 : 0;
+}
+
+/**
+ * Merge auto-discovered expectations with manual config entries.
+ *
+ * A manual entry with `blockDir: "hero-section"` overrides the discovered
+ * block for that directory. Checks are matched by field name — manual
+ * checks replace discovered ones with the same field name.
+ */
+function mergeExpectations(discovered, manual) {
+  const blocks = new Map(); // key = blockDir
+
+  // Add discovered blocks first
+  for (const entry of discovered) {
+    const dir = entry.blockDir;
+    if (!blocks.has(dir)) blocks.set(dir, []);
+    blocks.get(dir).push({ source: "discovered", ...entry });
+  }
+
+  // Merge manual entries — same blockDir overrides discovered fields
+  for (const manualEntry of manual) {
+    const dir = manualEntry.blockDir || manualEntry.label;
+    if (!blocks.has(dir)) blocks.set(dir, []);
+    const existing = blocks.get(dir);
+
+    // If this is a blockDir match on a discovered block, merge checks
+    const discoveredBlock = existing.find(
+      (e) => e.source === "discovered" && e.blockDir === manualEntry.blockDir
+    );
+    if (discoveredBlock) {
+      // Replace discovered checks with manual ones (by field name)
+      const manualFieldNames = manualEntry.checks.map((c) => c.field);
+      discoveredBlock.checks = [
+        ...discoveredBlock.checks.filter((c) => !manualFieldNames.includes(c.field)),
+        ...manualEntry.checks,
+      ];
+      discoveredBlock.pagePath = manualEntry.pagePath || discoveredBlock.pagePath;
+      discoveredBlock.label = manualEntry.label || discoveredBlock.label;
+    } else {
+      blocks.get(dir).push({ source: "manual", ...manualEntry });
+    }
+  }
+
+  // Flatten
+  const result = [];
+  for (const entries of blocks.values()) {
+    for (const entry of entries) {
+      if (entry.checks && entry.checks.length) {
+        result.push(entry);
+      }
+    }
+  }
+  return result;
 }
 
 main();

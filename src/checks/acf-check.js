@@ -14,7 +14,6 @@ async function checkAcf(browser) {
         timeout: config.pageTimeout,
       });
     } catch (e) {
-      // Page failed to load — mark all checks for this page as failed
       for (const check of expectation.checks) {
         results.push({
           page: expectation.pagePath,
@@ -37,30 +36,37 @@ async function checkAcf(browser) {
       const isOptional = check.optional || false;
       let found = false;
       let hasContent = false;
+      let textMatches = null; // null = no expectation set, true/false otherwise
+      let actualText = null;
       let error = null;
 
       try {
         const el = await page.$(check.selector);
         if (el) {
           found = true;
-          const text = (await el.textContent()) || "";
-          hasContent = text.trim().length > 0;
+          const rawText = (await el.textContent()) || "";
+          actualText = rawText.trim();
 
-          // For images: check src attribute too
-          if (check.selector.includes("img") && !hasContent) {
+          // For images: check src attribute
+          if (check.selector.includes("img")) {
             const src = await el.getAttribute("src");
+            actualText = src || "";
             hasContent = !!src;
+          } else {
+            hasContent = actualText.length > 0;
           }
 
-          // For links: check href attribute
-          if (check.selector.includes("a") && !hasContent) {
-            const href = await el.getAttribute("href");
-            hasContent = !!href;
+          // If expectedText is set, compare against it
+          if (check.expectedText !== undefined) {
+            textMatches = actualText.includes(check.expectedText);
           }
         }
       } catch (e) {
         error = e.message;
       }
+
+      // Pass: element found, has content, and text matches (if expected)
+      const passed = found && hasContent && (textMatches !== false);
 
       results.push({
         page: expectation.pagePath,
@@ -71,7 +77,10 @@ async function checkAcf(browser) {
         optional: isOptional,
         found,
         hasContent,
-        passed: found && hasContent,
+        expectedText: check.expectedText || null,
+        actualText,
+        textMatches,
+        passed,
         error,
       });
     }

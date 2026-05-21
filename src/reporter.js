@@ -79,6 +79,10 @@ function printSummary(report) {
         console.log(`           Selector: ${r.selector}`);
         if (!r.found) console.log(`           Issue: element not found`);
         if (r.found && !r.hasContent) console.log(`           Issue: element has no content`);
+        if (r.found && r.textMatches === false && r.expectedText) {
+          console.log(`           Expected: "${r.expectedText}"`);
+          console.log(`           Actual:   "${r.actualText?.substring(0, 120)}"`);
+        }
       }
     });
   }

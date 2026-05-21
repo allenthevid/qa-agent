@@ -33,7 +33,13 @@ function buildPrompt(report) {
   const acfSummary = acf
     .map((r) => {
       const status = r.optional && !r.found ? "SKIPPED (optional block not present)" : r.passed ? "PASS" : "FAIL";
-      return `- ${r.description}: ${status}`;
+      let line = `- ${r.description}: ${status}`;
+      if (r.textMatches === false && r.expectedText) {
+        line += ` | expected text "${r.expectedText}" but found "${r.actualText?.substring(0, 80)}"`;
+      }
+      if (!r.found) line += ` | element not found`;
+      if (r.found && !r.hasContent) line += ` | element empty`;
+      return line;
     })
     .join("\n");
 

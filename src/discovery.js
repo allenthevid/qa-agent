@@ -116,7 +116,7 @@ function inferSelector(twigSource, fieldName, fieldType) {
   // Look for patterns like: <tag class="..." ...>{{ heading }}</tag>
   // or: <tag class="..." ...>{{ fields.heading }}</tag>
   const textPattern = new RegExp(
-    `<(\\w+)([^>]*class="([^"]*)"[^>]*)>[^<]*\\{\\{\\s*(?:fields\\.)?${escaped}\\s*\\}\\}`,
+    `<(\\w+)([^>]*class="([^"]*)"[^>]*)>[^<]*\\{\\{\\s*(?:fields\\.)?${escaped}(?:\\|[^}]*)?\\s*\\}\\}`,
     "s"
   );
   const textMatch = twigSource.match(textPattern);
@@ -133,7 +133,7 @@ function inferSelector(twigSource, fieldName, fieldType) {
 
   // Fallback: look for any element containing the field reference
   const loosePattern = new RegExp(
-    `<(\\w+)([^>]*)>[^<]*\\{\\{\\s*(?:fields\\.)?${escaped}\\s*\\}\\}`,
+    `<(\\w+)([^>]*)>[^<]*\\{\\{\\s*(?:fields\\.)?${escaped}(?:\\|[^}]*)?\\s*\\}\\}`,
     "s"
   );
   const looseMatch = twigSource.match(loosePattern);

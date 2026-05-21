@@ -58,7 +58,7 @@ async function checkAcf(browser) {
 
           // If expectedText is set, compare against it
           if (check.expectedText !== undefined) {
-            textMatches = actualText.includes(check.expectedText);
+            textMatches = actualText === check.expectedText;
           }
         }
       } catch (e) {

@@ -4,7 +4,10 @@ const config = require("../../config");
 async function checkHttp(browser) {
   const results = [];
 
-  for (const { path, label } of config.pages) {
+  for (const pageConfig of config.pages) {
+    const path = pageConfig.path;
+    const label = pageConfig.label;
+    const expectedStatus = pageConfig.expectedStatus || 200;
     const url = config.siteUrl.replace(/\/$/, "") + path;
     const { page, context } = await newPage(browser);
 
@@ -18,7 +21,7 @@ async function checkHttp(browser) {
         timeout: config.pageTimeout,
       });
       status = response ? response.status() : null;
-      passed = status !== null && status >= 200 && status < 400;
+      passed = status === expectedStatus;
     } catch (e) {
       error = e.message;
       status = "unreachable";

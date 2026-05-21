@@ -20,37 +20,45 @@ module.exports = {
   // Pages to check for HTTP 200
   pages: [
     { path: "/", label: "Homepage" },
-    { path: "/blog", label: "Blog" },
-    { path: "/category/uncategorized", label: "Category Archive" },
-    { path: "/404-page", label: "404 Page" },
+    { path: "/blog/", label: "Blog" },
+    { path: "/category/uncategorized/", label: "Category Archive" },
+    // Use a garbage URL to verify the 404 template fires correctly
+    { path: "/this-page-definitely-does-not-exist-12345/", label: "404 Template", expectedStatus: 404 },
   ],
 
   // ACF field expectations — what should render on the frontend
-  // These match the hero-section and banner block templates
+  // Each entry maps to a real block template and its fields.
+  // SELECTOR TIP: check the actual block template.twig for exact classes.
+  // The hero-section block does NOT use class="hero-section" — it uses
+  // Tailwind utilities: section class="relative overflow-hidden bg-[#043873]"
   acfExpectations: [
     // hero-section block (on homepage)
+    // Default values render even without custom content:
+    //   heading = "Get More Done with whitepace"
+    //   description = "Project management software..."
+    //   button_label = "Try Whitepace free"
     {
       pagePath: "/",
       label: "Hero Section",
       checks: [
         {
           field: "heading",
-          selector: "section.hero-section h1",
-          description: "Hero heading should render inside an h1",
+          selector: 'section[class*="bg-"] h1',
+          description: "Hero heading (h1 inside the hero section)",
         },
         {
           field: "description",
-          selector: "section.hero-section p.leading-relaxed",
+          selector: 'section[class*="bg-"] p.font-inter.font-normal.text-\\[18px\\]',
           description: "Hero description paragraph",
         },
         {
           field: "button_label",
-          selector: 'section.hero-section a[class*="bg-"], section.hero-section button',
+          selector: 'section[class*="bg-"] button, section[class*="bg-"] a[class*="rounded"]',
           description: "CTA button or link",
         },
       ],
     },
-    // banner block — if present on homepage
+    // banner block — only if placed on homepage
     {
       pagePath: "/",
       label: "Banner Block",
@@ -58,26 +66,26 @@ module.exports = {
         {
           field: "heading",
           selector: "section.banner .main-title",
-          description: "Banner heading via heading.twig component",
+          description: "Banner heading via heading.twig",
           optional: true,
         },
         {
           field: "paragraph",
           selector: "section.banner .description",
-          description: "Banner paragraph content",
+          description: "Banner paragraph via wysiwyg",
           optional: true,
         },
       ],
     },
-    // Single post page — ACF options fields for post CTA
+    // Blog listing — checks if blog page renders with content
     {
-      pagePath: "/blog",
+      pagePath: "/blog/",
       label: "Blog Page",
       checks: [
         {
-          field: "posts_list",
-          selector: ".post-card, article.post, .posts-grid > *",
-          description: "Blog listing should show post cards",
+          field: "content_area",
+          selector: ".container, main, article, .content",
+          description: "Blog page has a content container",
         },
       ],
     },

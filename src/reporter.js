@@ -34,7 +34,7 @@ function buildReport(httpResults, acfResults, consoleResults) {
       warned,
       failed,
       skipped,
-      passRate: total > 0 ? Math.round(((passed + warned) / total) * 100) + "%" : "N/A",
+      passRate: (passed + warned + failed) > 0 ? Math.round(((passed + warned) / (passed + warned + failed)) * 100) + "%" : "N/A",
     },
     http: httpResults,
     acf: acfResults,

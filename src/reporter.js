@@ -8,18 +8,22 @@ function buildReport(httpResults, acfResults, consoleResults) {
     { category: "console", ...consoleResults },
   ];
 
-  const passed =
-    httpResults.filter((r) => r.passed).length +
-    acfResults.filter((r) => r.passed).length +
-    (consoleResults.passed ? 1 : 0);
+  const httpPassed = httpResults.filter((r) => r.passed).length;
+  const httpFailed = httpResults.filter((r) => !r.passed).length;
 
-  const total =
-    httpResults.length +
-    acfResults.filter((r) => !r.optional).length +
-    1; // console check always counts
+  const acfPassed = acfResults.filter((r) => r.status === "pass").length;
+  const acfWarned = acfResults.filter((r) => r.status === "warn").length;
+  const acfFailed = acfResults.filter((r) => r.status === "fail" && !r.optional).length;
+  const acfSkipped = acfResults.filter((r) => r.optional && !r.found).length;
 
-  let failed = total - passed;
-  const skipped = acfResults.filter((r) => r.optional && !r.found).length;
+  const consolePassed = consoleResults.passed ? 1 : 0;
+  const consoleFailed = consoleResults.passed ? 0 : 1;
+
+  const passed = httpPassed + acfPassed + consolePassed;
+  const warned = acfWarned;
+  const failed = httpFailed + acfFailed + consoleFailed;
+  const skipped = acfSkipped;
+  const total = passed + warned + failed + skipped;
 
   return {
     timestamp: new Date().toISOString(),
@@ -27,9 +31,10 @@ function buildReport(httpResults, acfResults, consoleResults) {
     summary: {
       total,
       passed,
+      warned,
       failed,
       skipped,
-      passRate: total > 0 ? Math.round((passed / total) * 100) + "%" : "N/A",
+      passRate: total > 0 ? Math.round(((passed + warned) / total) * 100) + "%" : "N/A",
     },
     http: httpResults,
     acf: acfResults,
@@ -57,6 +62,7 @@ function printSummary(report) {
   console.log(`  Date:      ${report.timestamp}`);
   console.log(`  Pass rate: ${summary.passRate}`);
   console.log(`  Passed:    ${summary.passed}`);
+  console.log(`  Warnings:  ${summary.warned}`);
   console.log(`  Failed:    ${summary.failed}`);
   console.log(`  Skipped:   ${summary.skipped}`);
   console.log(`  Total:     ${summary.total}`);
@@ -73,16 +79,19 @@ function printSummary(report) {
   if (report.acf.length) {
     console.log("\n  ACF Field Checks:");
     report.acf.forEach((r) => {
-      const icon = r.optional && !r.found ? "SKIP" : r.passed ? "PASS" : "FAIL";
+      const icon =
+        r.optional && !r.found ? "SKIP" : r.status === "pass" ? "PASS" : r.status === "warn" ? "WARN" : "FAIL";
       console.log(`    [${icon}] ${r.description}`);
-      if (!r.passed && !(r.optional && !r.found)) {
+      if (r.status === "warn") {
+        console.log(`           Selector: ${r.selector}`);
+        console.log(`           Expected: "${r.expectedText}"`);
+        console.log(`           Actual:   "${r.actualText?.substring(0, 120)}"`);
+        console.log(`           Note: content was customized in CMS — field is working fine`);
+      }
+      if (r.status === "fail" && !(r.optional && !r.found)) {
         console.log(`           Selector: ${r.selector}`);
         if (!r.found) console.log(`           Issue: element not found`);
         if (r.found && !r.hasContent) console.log(`           Issue: element has no content`);
-        if (r.found && r.textMatches === false && r.expectedText) {
-          console.log(`           Expected: "${r.expectedText}"`);
-          console.log(`           Actual:   "${r.actualText?.substring(0, 120)}"`);
-        }
       }
     });
   }

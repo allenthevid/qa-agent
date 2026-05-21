@@ -24,7 +24,7 @@ async function checkAcf(browser) {
           optional: check.optional || false,
           found: false,
           hasContent: false,
-          passed: false,
+          status: "fail",
           error: `Page failed to load: ${e.message}`,
         });
       }
@@ -65,8 +65,17 @@ async function checkAcf(browser) {
         error = e.message;
       }
 
-      // Pass: element found, has content, and text matches (if expected)
-      const passed = found && hasContent && (textMatches !== false);
+      // Status: "pass" | "warn" | "fail"
+      // warn = element renders with content, but text differs from expected
+      //        (normal after CMS edits — the field works, just customized)
+      let status = "fail";
+      if (found && hasContent) {
+        if (textMatches === false) {
+          status = "warn"; // renders fine, just different content
+        } else {
+          status = "pass";
+        }
+      }
 
       results.push({
         page: expectation.pagePath,
@@ -80,7 +89,7 @@ async function checkAcf(browser) {
         expectedText: check.expectedText || null,
         actualText,
         textMatches,
-        passed,
+        status,
         error,
       });
     }

@@ -32,13 +32,19 @@ function buildPrompt(report) {
 
   const acfSummary = acf
     .map((r) => {
-      const status = r.optional && !r.found ? "SKIPPED (optional block not present)" : r.passed ? "PASS" : "FAIL";
-      let line = `- ${r.description}: ${status}`;
-      if (r.textMatches === false && r.expectedText) {
-        line += ` | expected text "${r.expectedText}" but found "${r.actualText?.substring(0, 80)}"`;
+      let status;
+      if (r.optional && !r.found) {
+        status = "SKIPPED (optional block not present)";
+      } else if (r.status === "pass") {
+        status = "PASS";
+      } else if (r.status === "warn") {
+        status = `WARN — content changed (was "${r.expectedText}" now "${r.actualText?.substring(0, 60)}")`;
+      } else {
+        status = "FAIL";
       }
-      if (!r.found) line += ` | element not found`;
-      if (r.found && !r.hasContent) line += ` | element empty`;
+      let line = `- ${r.description}: ${status}`;
+      if (r.status === "fail" && !r.found) line += ` | element not found`;
+      if (r.status === "fail" && r.found && !r.hasContent) line += ` | element empty`;
       return line;
     })
     .join("\n");
@@ -52,13 +58,14 @@ Write 2-3 paragraphs in plain English that a PM would understand. Do NOT use jar
 Rules:
 - Lead with the overall health of the site (pass rate: ${summary.passRate})
 - Mention any broken pages first (these are critical)
-- Then mention content issues (ACF fields not showing)
+- Then mention content changes (WARN results) — these are fields that render fine but have been customized in the CMS, which is expected
+- Then mention content issues (ACF fields not showing — FAIL results)
 - Then mention any technical errors found
 - End with a clear "bottom line" — should we be confident deploying?
 - Keep it concise. No bullet points.
 
 SITE: ${report.siteUrl}
-PASS RATE: ${summary.passRate} (${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped out of ${summary.total} checks)
+PASS RATE: ${summary.passRate} (${summary.passed} passed, ${summary.warned} warnings, ${summary.failed} failed, ${summary.skipped} skipped out of ${summary.total} checks)
 
 PAGE AVAILABILITY:
 ${httpSummary}

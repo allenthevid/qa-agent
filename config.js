@@ -37,32 +37,6 @@ module.exports = {
   // The hero-section block does NOT use class="hero-section" — it uses
   // Tailwind utilities: section class="relative overflow-hidden bg-[#043873]"
   acfExpectations: [
-    // Override auto-discovered checks for hero-section with better selectors
-    {
-      pagePath: "/",
-      label: "Hero Section (manual override)",
-      blockDir: "hero-section",   // merges into discovered block
-      checks: [
-        {
-          field: "heading",
-          selector: 'section[class*="bg-"] h1',
-          description: "Hero heading (h1 inside the hero section)",
-          expectedText: "Get More Done with whitepace",
-        },
-        {
-          field: "description",
-          selector: 'section[class*="bg-"] p.font-inter.font-normal.text-\\[18px\\]',
-          description: "Hero description paragraph",
-          expectedText: "Project management software that enables your teams to collaborate, plan, analyze and manage everyday tasks",
-        },
-        {
-          field: "button_label",
-          selector: 'section[class*="bg-"] button, section[class*="bg-"] a[class*="rounded"]',
-          description: "CTA button or link",
-          expectedText: "Try Whitepace free",
-        },
-      ],
-    },
     // banner block — only if placed on homepage
     {
       pagePath: "/",
